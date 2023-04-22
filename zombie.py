@@ -5,6 +5,7 @@
 import os
 import random
 import numpy as np
+import tkinter
 
 # FILE
 try:
@@ -19,6 +20,9 @@ PEOPLE = 50
 WIDTH = 100
 HEIGHT = 100
 
+CWIDTH = 1000
+CHEIGHT = 1000
+
 CHANCE_TO_TRANSFER_VIRUS = 0.1
 CHANCE_TO_DIE_OF_VIRUS = 0.08
 CHANCE_TO_EXCHANGE_LIN = 0.15
@@ -29,12 +33,28 @@ IMMUNITY_PER_DAY_MAX = 0.015
 
 SAVE = os.path.dirname(__file__) + "/saves/save1.json"
 
+
+# Create thing
+root = tkinter.Tk("Zombie Simulation")
+c = tkinter.Canvas(root, bg="white", width=CWIDTH, height=CHEIGHT)
+
+
 # District
-class District():
-    """A district for the zombie simulation
-    """
-    def __init__(self, ppl:int, ctt:float, ctd:float, cte:float, ctp:float,
-    ipdmin:float, ipdmax:float, x_pos:int, y_pos:int):
+class District:
+    """A district for the zombie simulation"""
+
+    def __init__(
+        self,
+        ppl: int,
+        ctt: float,
+        ctd: float,
+        cte: float,
+        ctp: float,
+        ipdmin: float,
+        ipdmax: float,
+        x_pos: int,
+        y_pos: int,
+    ):
         """Create a district for the zombie simulation
 
         Args:
@@ -61,8 +81,7 @@ class District():
         self.immunity = 0
 
     def infect_locally(self) -> None:
-        """Infects locally
-        """
+        """Infects locally"""
         total_infected = self.infected
         chance_to_infect = self.chance_to_transfer
         immunity = self.immunity
@@ -72,24 +91,25 @@ class District():
         for person in range(0, total_infected):
             if random.random() < chance_to_infect:
                 newly_infected += 1
-                new_person = person # For vscode to shut up
-                person = new_person # For vscode to shup up
+                new_person = person  # For vscode to shut up
+                person = new_person  # For vscode to shup up
 
         total_infected += newly_infected
         self.infected = total_infected
         if self.infected > self.people:
             self.infected = self.people
+
     def infect_random_person(self) -> None:
-        """Infect a random person
-        """
+        """Infect a random person"""
         if self.infected < self.people:
             self.infected += 1
 
+
 # Create districts
-class City():
-    """A city for the zombie simulation
-    """
-    def __init__(self, width:int, height:int, prints:bool):
+class City:
+    """A city for the zombie simulation"""
+
+    def __init__(self, width: int, height: int, prints: bool):
         """Create a city
 
         Args:
@@ -97,7 +117,7 @@ class City():
             height (int): Height of city in districts
             prints (bool): Whether to print progress
         """
-        self.total_districts = height*width
+        self.total_districts = height * width
         self.city = []
         self.width = width
         self.height = height
@@ -106,24 +126,33 @@ class City():
         for i in range(0, width):
             temp = []
             for j in range(0, height):
-                temp.append(District(PEOPLE,
-                            CHANCE_TO_TRANSFER_VIRUS,
-                            CHANCE_TO_DIE_OF_VIRUS,
-                            CHANCE_TO_EXCHANGE_LIN,
-                            CHANCE_TO_PLANE,
-                            IMMUNITY_PER_DAY_MIN,
-                            IMMUNITY_PER_DAY_MAX, i, j))
+                temp.append(
+                    District(
+                        PEOPLE,
+                        CHANCE_TO_TRANSFER_VIRUS,
+                        CHANCE_TO_DIE_OF_VIRUS,
+                        CHANCE_TO_EXCHANGE_LIN,
+                        CHANCE_TO_PLANE,
+                        IMMUNITY_PER_DAY_MIN,
+                        IMMUNITY_PER_DAY_MAX,
+                        i,
+                        j,
+                    )
+                )
 
                 if prints:
-                    completed = i*height+j+1
+                    completed = i * height + j + 1
                     total = self.total_districts
-                    percent_rounded = round(completed/total*100, 2)
-                    print(f"\r[{percent_rounded}%] {completed}/{total} Districts comleted", end="")
+                    percent_rounded = round(completed / total * 100, 2)
+                    print(
+                        f"\r[{percent_rounded}%] {completed}/{total} Districts comleted",
+                        end="",
+                    )
             self.city.append(temp)
         if prints:
             print()
 
-    def close_districts_coords(self, x_pos:int, y_pos:int) -> list[list[int,int]]:
+    def close_districts_coords(self, x_pos: int, y_pos: int) -> list[list[int, int]]:
         """Returns coords of up, left, right, and down districts
 
         Args:
@@ -147,8 +176,9 @@ class City():
         if down_dist[1] >= self.height:
             down_dist[1] = 0
 
-        return [left_dist,up_dist,right_dist,down_dist]
-    def close_districts(self, center:District) -> list[District]:
+        return [left_dist, up_dist, right_dist, down_dist]
+
+    def close_districts(self, center: District) -> list[District]:
         """Close districts, takes district as input and returns districts
 
         Args:
@@ -179,8 +209,9 @@ class City():
         right_dist = self.city[right_dist[0]][right_dist[1]]
         down_dist = self.city[down_dist[0]][down_dist[1]]
 
-        return [left_dist,up_dist,right_dist,down_dist]
-    def district_at_coords(self, x_pos:int, y_pos:int) -> District:
+        return [left_dist, up_dist, right_dist, down_dist]
+
+    def district_at_coords(self, x_pos: int, y_pos: int) -> District:
         """Return district at y, x
 
         Args:
@@ -191,9 +222,9 @@ class City():
             District: The district at (x,y)
         """
         return self.city[x_pos][y_pos]
+
     def generate_stats(self) -> None:
-        """Generate stats
-        """
+        """Generate stats"""
         infected_list = []
         alive_list = []
 
@@ -206,7 +237,8 @@ class City():
         self.stats["alive"] = alive_list
         self.stats["infected_mean"] = np.mean(infected_list)
         self.stats["alive_mean"] = np.mean(infected_list)
-    def do_local_infects(self, prints:bool=False):
+
+    def do_local_infects(self, prints: bool = False):
         """Do local infections in all districts
 
         Args:
@@ -216,35 +248,105 @@ class City():
             for j in range(0, self.height):
                 self.city[i][j].infect_locally()
                 if prints:
-                    completed = i*self.height+j+1
+                    completed = i * self.height + j + 1
                     total = self.total_districts
-                    percent_rounded = round(completed/total*100, 4)
-                    print(f"\r[{percent_rounded}%] {completed}/{total} Districts comleted", end="")
+                    percent_rounded = round(completed / total * 100, 4)
+                    print(
+                        f"\r[{percent_rounded}%] {completed}/{total} Districts comleted",
+                        end="",
+                    )
 
     def infect_random_person(self) -> None:
-        """Infect a random person in a random district
-        """
+        """Infect a random person in a random district"""
         coords = self.get_random_coords()
         self.city[coords[0]][coords[1]].infect_random_person()
 
-    def get_random_coords(self) -> tuple[int,int]:
+    def get_random_coords(self) -> tuple[int, int]:
         """Get random coords
 
         Returns:
             tuple[int,int]: (x, y) coords
         """
-        x_pos = random.randint(0, self.width-1)
-        y_pos = random.randint(0, self.height-1)
-        return(x_pos,y_pos)
+        x_pos = random.randint(0, self.width - 1)
+        y_pos = random.randint(0, self.height - 1)
+        return (x_pos, y_pos)
+
+
 # Test city
 print("Creating city...")
 test = City(WIDTH, HEIGHT, False)
 
 deeta = []
-
-print("Infecting random person...")
-print()
-test.infect_random_person()
 DAYS = 50
 
- 
+# Canvas things
+c.pack()
+c_districts = []
+district_width = CWIDTH / WIDTH
+district_height = CHEIGHT / HEIGHT
+
+
+# Colors rgb to hex
+def rgb_to_hex(rgb):
+    """translates an rgb tuple of int to a tkinter friendly color code"""
+    return "#%02x%02x%02x" % rgb
+
+
+# Percent to color
+def percent_to_color(percent: float) -> str:
+    """Green -> Yellow -> Red map
+
+    Args:
+        percent (float): Percent
+
+    Returns:
+        str: Hex
+    """
+    #print("\n", percent)
+    #print(percent)
+    pct_diff = 1.0 - percent
+    red_color = min(255, pct_diff * 2 * 255)
+    green_color = min(255, percent * 2 * 255)
+    colors = (round(red_color), round(green_color), 0)
+    return rgb_to_hex(colors)
+
+
+# Create canvas districts
+for i in range(0, WIDTH):
+    c_districts.append(list())
+    for j in range(0, HEIGHT):
+        c_districts[i].append(
+            c.create_rectangle(
+                i * district_width,
+                j * district_height,
+                (i + 1) * district_width,
+                (j + 1) * district_height,
+                outline="black",
+                width=1,
+                fill=percent_to_color(0),
+            )
+        )
+
+
+# Update district color
+def update_district_color(x: int, y: int) -> None:
+    """Update district's color
+
+    Args:
+        x (int): x position
+        y (int): y position
+    """
+    district = test.district_at_coords(x, y)
+    infectedpercent = 1-(district.infected / district.people)
+    
+    c.itemconfig(c_districts[x][y], {"fill": percent_to_color(infectedpercent)})
+
+
+test.infect_random_person()
+
+stop = False
+while not stop:
+    for i in range(0, WIDTH):
+        for j in range(0, HEIGHT):
+            update_district_color(i, j)
+    root.update()
