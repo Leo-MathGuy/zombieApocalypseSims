@@ -6,6 +6,7 @@ import os
 import random
 import numpy as np
 import tkinter
+from time import sleep
 
 # FILE
 try:
@@ -92,7 +93,7 @@ class District:
             if random.random() < chance_to_infect:
                 newly_infected += 1
                 new_person = person  # For vscode to shut up
-                person = new_person  # For vscode to shup up
+                person = new_person
 
         total_infected += newly_infected
         self.infected = total_infected
@@ -271,6 +272,30 @@ class City:
         y_pos = random.randint(0, self.height - 1)
         return (x_pos, y_pos)
 
+    def do_close_infect(self, x_pos:int, y_pos:int) -> None:
+        close_districts = self.close_districts_coords(x_pos, y_pos)
+        district = self.district_at_coords(x_pos, y_pos)
+
+        for dsct in range(0, len(close_districts)):
+            out_dsct = self.city[dsct[0]][dsct[1]]
+            
+            for infected in range(0,district.infected):
+                if district.chance_to_exchange > random.random():
+                    exchg_out = True
+                    
+                    exchg_in = (random.random() < (out_dsct.infected/out_dsct.people))
+                    
+                    if exchg_in:
+                        self.city[x_pos][y_pos].infected += 1
+                        self.city[dsct[0]][dsct[1]].infected -= 1
+                    if exchg_out:
+                        self.city[x_pos][y_pos].infected -= 1
+                        self.city[dsct[0]][dsct[1]].infected += 1
+    
+    def do_close_infects(self) -> None:
+        for x_pos in range(0, self.width):
+            for y_pos in range(0, self.height):
+                self.do_close_infect(x_pos, y_pos)
 
 # Test city
 print("Creating city...")
@@ -345,8 +370,13 @@ def update_district_color(x: int, y: int) -> None:
 test.infect_random_person()
 
 stop = False
-while not stop:
+for day in range(0, DAYS):
     for i in range(0, WIDTH):
         for j in range(0, HEIGHT):
             update_district_color(i, j)
+    
+    print("Day", day+1)
+    
+    test.do_close_infects()
+    test.do_local_infects()
     root.update()
