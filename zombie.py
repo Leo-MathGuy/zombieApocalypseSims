@@ -18,8 +18,8 @@ except FileExistsError:
 # CONSTANTS
 PEOPLE = 50
 
-WIDTH = 100
-HEIGHT = 100
+WIDTH = 20
+HEIGHT = 20
 
 CWIDTH = 1000
 CHEIGHT = 1000
@@ -33,6 +33,8 @@ IMMUNITY_PER_DAY_MIN = 0
 IMMUNITY_PER_DAY_MAX = 0.015
 
 SAVE = os.path.dirname(__file__) + "/saves/save1.json"
+
+DAYS = 250
 
 
 # Create thing
@@ -277,7 +279,7 @@ class City:
         district = self.district_at_coords(x_pos, y_pos)
 
         for dsct in range(0, len(close_districts)):
-            out_dsct = self.city[dsct[0]][dsct[1]]
+            out_dsct = self.city[close_districts[dsct][0]][close_districts[dsct][1]]
             
             for infected in range(0,district.infected):
                 if district.chance_to_exchange > random.random():
@@ -287,10 +289,10 @@ class City:
                     
                     if exchg_in:
                         self.city[x_pos][y_pos].infected += 1
-                        self.city[dsct[0]][dsct[1]].infected -= 1
+                        self.city[close_districts[dsct][0]][close_districts[dsct][1]].infected -= 1
                     if exchg_out:
                         self.city[x_pos][y_pos].infected -= 1
-                        self.city[dsct[0]][dsct[1]].infected += 1
+                        self.city[close_districts[dsct][0]][close_districts[dsct][1]].infected += 1
     
     def do_close_infects(self) -> None:
         for x_pos in range(0, self.width):
@@ -302,7 +304,6 @@ print("Creating city...")
 test = City(WIDTH, HEIGHT, False)
 
 deeta = []
-DAYS = 50
 
 # Canvas things
 c.pack()
@@ -364,6 +365,11 @@ def update_district_color(x: int, y: int) -> None:
     district = test.district_at_coords(x, y)
     infectedpercent = 1-(district.infected / district.people)
     
+    if infectedpercent < 1:
+        c.itemconfig(c_districts[x][y], {"width":2})
+    else:
+        c.itemconfig(c_districts[x][y], {"width":1})
+    
     c.itemconfig(c_districts[x][y], {"fill": percent_to_color(infectedpercent)})
 
 
@@ -371,12 +377,15 @@ test.infect_random_person()
 
 stop = False
 for day in range(0, DAYS):
+    print("Day", day+1, "started")
+    
+    # Do infects
+    test.do_close_infects()
+    test.do_local_infects()
+    
+    # Colors
     for i in range(0, WIDTH):
         for j in range(0, HEIGHT):
             update_district_color(i, j)
-    
-    print("Day", day+1)
-    
-    test.do_close_infects()
-    test.do_local_infects()
+
     root.update()
