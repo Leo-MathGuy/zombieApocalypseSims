@@ -22,7 +22,7 @@ WIDTH = 20
 HEIGHT = 20
 
 CWIDTH = 1000
-CHEIGHT = 1000
+CHEIGHT = 1100
 
 CHANCE_TO_TRANSFER_VIRUS = 0.1
 CHANCE_TO_DIE_OF_VIRUS = 0.08
@@ -171,13 +171,13 @@ class City:
         down_dist = [x_pos, y_pos + 1]
 
         if left_dist[0] < 0:
-            left_dist[0] = self.width - 1
+            left_dist = None
         if up_dist[1] < 0:
-            up_dist[1] = self.height - 1
+            up_dist = None
         if right_dist[0] >= self.width:
-            right_dist[0] = 0
+            right_dist = None
         if down_dist[1] >= self.height:
-            down_dist[1] = 0
+            down_dist = None
 
         return [left_dist, up_dist, right_dist, down_dist]
 
@@ -199,18 +199,22 @@ class City:
         down_dist = [x_pos, y_pos + 1]
 
         if left_dist[0] < 0:
-            left_dist[0] = self.width - 1
+            left_dist = None
         if up_dist[1] < 0:
-            up_dist[1] = self.height - 1
+            up_dist = None
         if right_dist[0] >= self.width:
-            right_dist[0] = 0
+            right_dist = None
         if down_dist[1] >= self.height:
-            down_dist[1] = 0
+            down_dist = None
 
-        left_dist = self.city[left_dist[0]][left_dist[1]]
-        up_dist = self.city[up_dist[0]][up_dist[1]]
-        right_dist = self.city[right_dist[0]][right_dist[1]]
-        down_dist = self.city[down_dist[0]][down_dist[1]]
+        if left_dist:
+            left_dist = self.city[left_dist[0]][left_dist[1]]
+        if up_dist:
+            up_dist = self.city[up_dist[0]][up_dist[1]]
+        if right_dist:
+            right_dist = self.city[right_dist[0]][right_dist[1]]
+        if down_dist:
+            down_dist = self.city[down_dist[0]][down_dist[1]]
 
         return [left_dist, up_dist, right_dist, down_dist]
 
@@ -274,30 +278,59 @@ class City:
         y_pos = random.randint(0, self.height - 1)
         return (x_pos, y_pos)
 
-    def do_close_infect(self, x_pos:int, y_pos:int) -> None:
+    def do_close_infect(self, x_pos: int, y_pos: int) -> None:
+        """Close infect a district
+
+        Args:
+            x_pos (int): X position
+            y_pos (int): Y position
+        """
         close_districts = self.close_districts_coords(x_pos, y_pos)
         district = self.district_at_coords(x_pos, y_pos)
 
         for dsct in range(0, len(close_districts)):
+            if not close_districts[dsct]:
+                continue
+
             out_dsct = self.city[close_districts[dsct][0]][close_districts[dsct][1]]
-            
-            for infected in range(0,district.infected):
+
+            for infected in range(0, district.infected):
                 if district.chance_to_exchange > random.random():
                     exchg_out = True
-                    
-                    exchg_in = (random.random() < (out_dsct.infected/out_dsct.people))
-                    
+
+                    exchg_in = random.random() < (out_dsct.infected / out_dsct.people)
+
                     if exchg_in:
                         self.city[x_pos][y_pos].infected += 1
-                        self.city[close_districts[dsct][0]][close_districts[dsct][1]].infected -= 1
+                        self.city[close_districts[dsct][0]][
+                            close_districts[dsct][1]
+                        ].infected -= 1
                     if exchg_out:
                         self.city[x_pos][y_pos].infected -= 1
-                        self.city[close_districts[dsct][0]][close_districts[dsct][1]].infected += 1
-    
+                        self.city[close_districts[dsct][0]][
+                            close_districts[dsct][1]
+                        ].infected += 1
+
     def do_close_infects(self) -> None:
+        """Close infect whole city"""
         for x_pos in range(0, self.width):
             for y_pos in range(0, self.height):
                 self.do_close_infect(x_pos, y_pos)
+
+    def is_fully_infected(self) -> bool:
+        """Is the city fully infected?
+
+        Returns:
+            bool: Yes/no
+        """
+        fully_infected = True
+        for x_pos in range(0, self.width):
+            for y_pos in range(0, self.height):
+                if self.city[x_pos][y_pos].infected != self.city[x_pos][y_pos].people:
+                    fully_infected = False
+
+        return fully_infected
+
 
 # Test city
 print("Creating city...")
@@ -309,7 +342,7 @@ deeta = []
 c.pack()
 c_districts = []
 district_width = CWIDTH / WIDTH
-district_height = CHEIGHT / HEIGHT
+district_height = (CHEIGHT - 100) / HEIGHT
 
 
 # Colors rgb to hex
@@ -328,8 +361,8 @@ def percent_to_color(percent: float) -> str:
     Returns:
         str: Hex
     """
-    #print("\n", percent)
-    #print(percent)
+    # print("\n", percent)
+    # print(percent)
     pct_diff = 1.0 - percent
     red_color = min(255, pct_diff * 2 * 255)
     green_color = min(255, percent * 2 * 255)
@@ -363,29 +396,47 @@ def update_district_color(x: int, y: int) -> None:
         y (int): y position
     """
     district = test.district_at_coords(x, y)
-    infectedpercent = 1-(district.infected / district.people)
-    
+    infectedpercent = 1 - (district.infected / district.people)
+
     if infectedpercent < 1:
-        c.itemconfig(c_districts[x][y], {"width":2})
+        c.itemconfig(c_districts[x][y], {"width": 2})
     else:
-        c.itemconfig(c_districts[x][y], {"width":1})
-    
+        c.itemconfig(c_districts[x][y], {"width": 1})
+
     c.itemconfig(c_districts[x][y], {"fill": percent_to_color(infectedpercent)})
 
 
+print("Created! Infecting person...")
 test.infect_random_person()
 
 stop = False
+print("Done! Main loop staring...")
 for day in range(0, DAYS):
-    print("Day", day+1, "started")
-    
-    # Do infects
+    print("Day", day + 1, "started")
+
+    print("Doing transfers...")
     test.do_close_infects()
+    print("Doing local infects...")
     test.do_local_infects()
-    
-    # Colors
+
+    print("Updating colors...")
     for i in range(0, WIDTH):
         for j in range(0, HEIGHT):
             update_district_color(i, j)
 
+    print("Updating window...")
     root.update()
+
+    if test.is_fully_infected():
+        print("Done!")
+        print("Generating stats...")
+        test.generate_stats()
+        print("-------------------------------")
+        print("Done! Shutting down in")
+        for i in range(3, -1, -1):
+            print(i)
+            sleep(1)
+            root.update()
+        break
+
+    print("Day", day + 1, "ended")
