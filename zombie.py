@@ -18,11 +18,11 @@ except FileExistsError:
 # CONSTANTS
 PEOPLE = 50
 
-WIDTH = 50
-HEIGHT = 50
+WIDTH = 100
+HEIGHT = 100
 
-CWIDTH = 1000
-CHEIGHT = 1100
+CWIDTH = 2000
+CHEIGHT = 1400
 
 CHANCE_TO_TRANSFER_VIRUS = 0.1
 CHANCE_TO_DIE_OF_VIRUS = 0.08
@@ -34,7 +34,7 @@ IMMUNITY_PER_DAY_MAX = 0.015
 
 SAVE = os.path.dirname(__file__) + "/saves/save1.json"
 
-DAYS = 250
+DAYS = 1000
 
 
 # Create thing
@@ -101,6 +101,8 @@ class District:
         self.infected = total_infected
         if self.infected > self.people:
             self.infected = self.people
+        
+        update_district_color(self.x_pos, self.y_pos)
 
     def infect_random_person(self) -> None:
         """Infect a random person"""
@@ -267,6 +269,7 @@ class City:
         """Infect a random person in a random district"""
         coords = self.get_random_coords()
         self.city[coords[0]][coords[1]].infect_random_person()
+        update_district_color(*coords)
 
     def get_random_coords(self) -> tuple[int, int]:
         """Get random coords
@@ -297,19 +300,26 @@ class City:
             for infected in range(0, district.infected):
                 if district.chance_to_exchange > random.random():
                     exchg_out = True
-
                     exchg_in = random.random() < (out_dsct.infected / out_dsct.people)
+
+                    if exchg_in == exchg_out:
+                        return
 
                     if exchg_in:
                         self.city[x_pos][y_pos].infected += 1
                         self.city[close_districts[dsct][0]][
                             close_districts[dsct][1]
                         ].infected -= 1
+                        update_district_color(x_pos, y_pos)
+                        update_district_color(close_districts[dsct][0], close_districts[dsct][1])
+
                     if exchg_out:
                         self.city[x_pos][y_pos].infected -= 1
                         self.city[close_districts[dsct][0]][
                             close_districts[dsct][1]
                         ].infected += 1
+                        update_district_color(x_pos, y_pos)
+                        update_district_color(close_districts[dsct][0], close_districts[dsct][1])
 
     def do_close_infects(self) -> None:
         """Close infect whole city"""
@@ -341,6 +351,7 @@ deeta = []
 # Canvas things
 c.pack()
 c_districts = []
+c_district_texts = []
 district_width = CWIDTH / WIDTH
 district_height = (CHEIGHT - 100) / HEIGHT
 
@@ -373,6 +384,7 @@ def percent_to_color(percent: float) -> str:
 # Create canvas districts
 for i in range(0, WIDTH):
     c_districts.append(list())
+    c_district_texts.append(list())
     for j in range(0, HEIGHT):
         c_districts[i].append(
             c.create_rectangle(
@@ -383,6 +395,14 @@ for i in range(0, WIDTH):
                 outline="black",
                 width=1,
                 fill=percent_to_color(0),
+            )
+        )
+        c_district_texts[i].append(
+            c.create_text(
+                i * district_width + district_width/2,
+                j * district_height + district_height/2,
+                text="",
+                font=("Roboto", 4)
             )
         )
 
@@ -400,8 +420,11 @@ def update_district_color(x: int, y: int) -> None:
 
     if infectedpercent < 1:
         c.itemconfig(c_districts[x][y], {"width": 2})
+        c.itemconfig(c_district_texts[x][y], {"text": str(district.infected)+"/"+str(district.people)})
     else:
         c.itemconfig(c_districts[x][y], {"width": 1})
+        c.itemconfig(c_district_texts[x][y], {"text": str(district.infected)+"/"+str(district.people)})
+
 
     c.itemconfig(c_districts[x][y], {"fill": percent_to_color(infectedpercent)})
 
@@ -419,7 +442,6 @@ for day in range(0, DAYS):
     print("Doing local infects...")
     test.do_local_infects()
 
-    print("Updating colors...")
     for i in range(0, WIDTH):
         for j in range(0, HEIGHT):
             update_district_color(i, j)
